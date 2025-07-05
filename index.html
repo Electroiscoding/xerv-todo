@@ -6,29 +6,155 @@
   <title>Todo Alarm PWA</title>
   <link rel="manifest" href="manifest.json" />
   <meta name="theme-color" content="#0f172a" />
-  <link rel="icon" href="icons/icon-192.png" />
+  <link rel="icon" href="android-chrome-192x192.png" />
+  <link rel="apple-touch-icon" href="android-chrome-192x192.png" />
+  <style>
+    /* Make favicon rounded */
+    link[rel="icon"] {
+      border-radius: 50%;
+    }
+    
+    /* Custom rounded favicon styles */
+    .rounded-favicon {
+      border-radius: 50%;
+      overflow: hidden;
+    }
+  </style>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          animation: {
+            'fade-in': 'fadeIn 0.3s ease-in-out',
+            'slide-up': 'slideUp 0.3s ease-out',
+            'bounce-in': 'bounceIn 0.5s ease-out',
+            'pulse-glow': 'pulseGlow 2s ease-in-out infinite',
+          },
+          keyframes: {
+            fadeIn: {
+              '0%': { opacity: '0' },
+              '100%': { opacity: '1' }
+            },
+            slideUp: {
+              '0%': { transform: 'translateY(20px)', opacity: '0' },
+              '100%': { transform: 'translateY(0)', opacity: '1' }
+            },
+            bounceIn: {
+              '0%': { transform: 'scale(0.3)', opacity: '0' },
+              '50%': { transform: 'scale(1.05)' },
+              '70%': { transform: 'scale(0.9)' },
+              '100%': { transform: 'scale(1)', opacity: '1' }
+            },
+            pulseGlow: {
+              '0%, 100%': { boxShadow: '0 0 5px rgba(59, 130, 246, 0.5)' },
+              '50%': { boxShadow: '0 0 20px rgba(59, 130, 246, 0.8)' }
+            }
+          }
+        }
+      }
+    }
+    
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js').then(() => console.log('SW registered'));
     }
     Notification.requestPermission();
   </script>
 </head>
-<body class="bg-slate-900 text-white min-h-screen flex flex-col items-center p-4">
-  <h1 class="text-2xl font-bold mb-4">🔔 Todo + Alarm</h1>
-  <form id="todo-form" class="w-full max-w-md space-y-2">
-    <input id="todo-text" type="text" placeholder="Task..." class="w-full p-2 text-black rounded" required />
-    <input id="todo-time" type="datetime-local" class="w-full p-2 text-black rounded" required />
-    <button type="submit" class="w-full bg-blue-600 py-2 rounded hover:bg-blue-700">Add Task + Set Alarm</button>
-  </form>
-  <ul id="todo-list" class="mt-6 w-full max-w-md space-y-3"></ul>
+<body class="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white min-h-screen">
+  <!-- Background Pattern -->
+  <div class="fixed inset-0 opacity-10">
+    <div class="absolute inset-0 bg-[radial-gradient(circle_at_1px_1px,rgba(255,255,255,0.15)_1px,transparent_0)] bg-[length:20px_20px]"></div>
+  </div>
+
+  <div class="relative z-10 flex flex-col items-center p-4 min-h-screen">
+    <!-- Header -->
+    <header class="text-center mb-8 animate-fade-in">
+      <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full mb-4 shadow-lg overflow-hidden">
+        <img src="android-chrome-192x192.png" alt="Todo Alarm Icon" class="w-full h-full object-cover rounded-full" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" />
+        <span class="text-2xl hidden">🔔</span>
+      </div>
+      <h1 class="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-2">
+        Todo Alarm
+      </h1>
+      <p class="text-slate-400 text-sm">Stay organized with smart reminders</p>
+    </header>
+
+    <!-- Form -->
+    <form id="todo-form" class="w-full max-w-md space-y-4 animate-slide-up">
+      <div class="relative">
+        <input 
+          id="todo-text" 
+          type="text" 
+          placeholder="What do you need to do?" 
+          class="w-full p-4 bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+          required 
+        />
+        <div class="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-500">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+          </svg>
+        </div>
+      </div>
+
+      <div class="relative">
+        <input 
+          id="todo-time" 
+          type="datetime-local" 
+          class="w-full p-4 bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+          required 
+        />
+        <div class="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-500">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+        </div>
+      </div>
+
+      <button 
+        type="submit" 
+        class="w-full bg-gradient-to-r from-blue-600 to-purple-600 py-4 rounded-xl font-semibold text-white shadow-lg hover:from-blue-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+      >
+        <span class="inline-flex items-center">
+          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+          </svg>
+          Add Task & Set Alarm
+        </span>
+      </button>
+    </form>
+
+    <!-- Tasks List -->
+    <div class="mt-8 w-full max-w-md">
+      <div id="empty-state" class="text-center py-12 text-slate-400 hidden">
+        <div class="w-16 h-16 mx-auto mb-4 bg-slate-800 rounded-full flex items-center justify-center">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+        </div>
+        <p class="text-lg font-medium mb-2">No tasks yet</p>
+        <p class="text-sm">Add your first task to get started</p>
+      </div>
+
+      <ul id="todo-list" class="space-y-3"></ul>
+    </div>
+
+    <!-- Stats -->
+    <div id="stats" class="mt-8 text-center text-slate-400 text-sm hidden">
+      <span id="task-count">0 tasks</span> • 
+      <span id="upcoming-count">0 upcoming</span>
+    </div>
+  </div>
 
   <script>
     const todoForm = document.getElementById('todo-form');
     const todoText = document.getElementById('todo-text');
     const todoTime = document.getElementById('todo-time');
     const todoList = document.getElementById('todo-list');
+    const emptyState = document.getElementById('empty-state');
+    const stats = document.getElementById('stats');
+    const taskCount = document.getElementById('task-count');
+    const upcomingCount = document.getElementById('upcoming-count');
 
     let todos = JSON.parse(localStorage.getItem('todos') || '[]');
 
@@ -37,30 +163,101 @@
       render();
     }
 
+    function getTimeStatus(time) {
+      const now = new Date();
+      const taskTime = new Date(time);
+      const diffMs = taskTime - now;
+      const diffHours = diffMs / (1000 * 60 * 60);
+      
+      if (diffMs < 0) return { status: 'overdue', text: 'Overdue', color: 'text-red-400' };
+      if (diffHours < 1) return { status: 'urgent', text: 'Due soon', color: 'text-orange-400' };
+      if (diffHours < 24) return { status: 'today', text: 'Today', color: 'text-yellow-400' };
+      return { status: 'upcoming', text: 'Upcoming', color: 'text-blue-400' };
+    }
+
+    function formatRelativeTime(time) {
+      const now = new Date();
+      const taskTime = new Date(time);
+      const diffMs = taskTime - now;
+      const diffMinutes = Math.floor(diffMs / (1000 * 60));
+      const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      
+      if (diffMs < 0) return 'Overdue';
+      if (diffMinutes < 60) return `${diffMinutes}m left`;
+      if (diffHours < 24) return `${diffHours}h left`;
+      return `${diffDays}d left`;
+    }
+
     function render() {
       todoList.innerHTML = '';
+      
+      if (todos.length === 0) {
+        emptyState.classList.remove('hidden');
+        stats.classList.add('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+      stats.classList.remove('hidden');
+
       todos.forEach((todo, i) => {
+        const timeStatus = getTimeStatus(todo.time);
         const li = document.createElement('li');
-        li.className = 'bg-slate-800 p-2 rounded flex justify-between items-center';
+        li.className = 'bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-4 rounded-xl animate-bounce-in hover:bg-slate-800/70 transition-all duration-300';
+        li.style.animationDelay = `${i * 0.1}s`;
+        
         li.innerHTML = `
-          <div>
-            <p>${todo.text}</p>
-            <small class="text-gray-400">${new Date(todo.time).toLocaleString()}</small>
+          <div class="flex justify-between items-start">
+            <div class="flex-1">
+              <p class="font-medium text-white mb-1">${todo.text}</p>
+              <div class="flex items-center space-x-2 text-sm">
+                <span class="text-slate-400">${new Date(todo.time).toLocaleString()}</span>
+                <span class="w-1 h-1 bg-slate-600 rounded-full"></span>
+                <span class="${timeStatus.color} font-medium">${formatRelativeTime(todo.time)}</span>
+              </div>
+            </div>
+            <button 
+              onclick="removeTodo(${i})" 
+              class="ml-4 p-2 text-slate-400 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all duration-200"
+              title="Remove task"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
           </div>
-          <button onclick="removeTodo(${i})" class="text-red-400 hover:text-red-600">✕</button>
         `;
         todoList.appendChild(li);
       });
+
+      // Update stats
+      const upcomingTasks = todos.filter(todo => new Date(todo.time) > new Date()).length;
+      taskCount.textContent = `${todos.length} task${todos.length !== 1 ? 's' : ''}`;
+      upcomingCount.textContent = `${upcomingTasks} upcoming`;
     }
 
     function removeTodo(index) {
-      todos.splice(index, 1);
-      saveAndRender();
+      const li = todoList.children[index];
+      li.style.transform = 'translateX(100%)';
+      li.style.opacity = '0';
+      
+      setTimeout(() => {
+        todos.splice(index, 1);
+        saveAndRender();
+      }, 300);
     }
 
     function notify(title, body) {
       if (Notification.permission === 'granted') {
-        new Notification(title, { body });
+        const notification = new Notification(title, { 
+          body,
+          icon: 'android-chrome-192x192.png',
+          badge: 'android-chrome-192x192.png'
+        });
+        
+        // Auto-close notification after 5 seconds
+        setTimeout(() => notification.close(), 5000);
       }
     }
 
@@ -85,13 +282,43 @@
       scheduleAlarm(task);
       saveAndRender();
 
+      // Add success feedback
+      const button = todoForm.querySelector('button');
+      const originalText = button.innerHTML;
+      button.innerHTML = '<span class="inline-flex items-center"><svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>Added!</span>';
+      button.classList.add('bg-green-600', 'hover:bg-green-700');
+      button.classList.remove('from-blue-600', 'to-purple-600', 'hover:from-blue-700', 'hover:to-purple-700');
+      
+      setTimeout(() => {
+        button.innerHTML = originalText;
+        button.classList.remove('bg-green-600', 'hover:bg-green-700');
+        button.classList.add('from-blue-600', 'to-purple-600', 'hover:from-blue-700', 'hover:to-purple-700');
+      }, 2000);
+
       todoText.value = '';
       todoTime.value = '';
     };
 
+    // Add glow effect to urgent tasks
+    function updateUrgentTasks() {
+      todos.forEach((todo, i) => {
+        const timeStatus = getTimeStatus(todo.time);
+        const li = todoList.children[i];
+        if (li && timeStatus.status === 'urgent') {
+          li.classList.add('animate-pulse-glow');
+        }
+      });
+    }
+
     // Schedule alarms on load
     todos.forEach(scheduleAlarm);
     render();
+    
+    // Update relative times every minute
+    setInterval(() => {
+      render();
+      updateUrgentTasks();
+    }, 60000);
   </script>
 </body>
 </html>
