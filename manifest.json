@@ -1,6 +1,6 @@
 {
   "name": " XervTodo Alarm PWA",
-  "short_name": "TodoAlarm",
+  "short_name": "XervTodo",
   "description": "Stay organized with smart reminders",
   "start_url": "/",
   "display": "standalone",
