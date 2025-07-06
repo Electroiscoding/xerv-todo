@@ -19,6 +19,17 @@
       border-radius: 50%;
       overflow: hidden;
     }
+
+    .focus-mode-active > *:not(#todo-list) {
+      /* Styles for non-task-list elements when focus mode is active */
+      /* The header and form are handled via direct class manipulation for more specific control (like h-0) */
+    }
+    .focus-mode-active #stats {
+       opacity: 0.3;
+       filter: blur(2px);
+       transition: opacity 0.3s ease, filter 0.3s ease;
+    }
+
   </style>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -111,6 +122,38 @@
         </div>
       </div>
 
+      <div class="grid grid-cols-2 gap-4">
+        <div class="relative">
+          <select
+            id="todo-priority"
+            class="w-full p-4 bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 appearance-none"
+          >
+            <option value="medium" class="bg-slate-900">Medium Priority</option>
+            <option value="high" class="bg-slate-900">High Priority</option>
+            <option value="low" class="bg-slate-900">Low Priority</option>
+          </select>
+          <div class="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-500 pointer-events-none">
+            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
+            </svg>
+          </div>
+        </div>
+
+        <div class="relative">
+          <input
+            id="todo-reward"
+            type="text"
+            placeholder="Reward (optional)"
+            class="w-full p-4 bg-slate-800/50 backdrop-blur-sm border border-slate-700 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300"
+          />
+          <div class="absolute right-4 top-1/2 transform -translate-y-1/2 text-slate-500">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path> <!-- Placeholder icon, consider changing to a gift or star -->
+            </svg>
+          </div>
+        </div>
+      </div>
+
       <button 
         type="submit" 
         class="w-full bg-gradient-to-r from-blue-600 to-purple-600 py-4 rounded-xl font-semibold text-white shadow-lg hover:from-blue-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-900"
@@ -143,6 +186,11 @@
     <div id="stats" class="mt-8 text-center text-slate-400 text-sm hidden">
       <span id="task-count">0 tasks</span> • 
       <span id="upcoming-count">0 upcoming</span>
+      <div id="accomplishment-rate-container" class="mt-2">
+        <span class="font-medium text-slate-300">Today's Accomplishment:</span>
+        <span id="accomplishment-rate" class="text-lg font-bold text-green-400">0%</span>
+        <span id="accomplishment-details" class="text-xs text-slate-500 block">(0 of 0 tasks due today/past)</span>
+      </div>
     </div>
   </div>
 
@@ -150,13 +198,20 @@
     const todoForm = document.getElementById('todo-form');
     const todoText = document.getElementById('todo-text');
     const todoTime = document.getElementById('todo-time');
+    const todoPriority = document.getElementById('todo-priority');
+    const todoReward = document.getElementById('todo-reward');
     const todoList = document.getElementById('todo-list');
     const emptyState = document.getElementById('empty-state');
     const stats = document.getElementById('stats');
     const taskCount = document.getElementById('task-count');
     const upcomingCount = document.getElementById('upcoming-count');
+    const accomplishmentRateEl = document.getElementById('accomplishment-rate');
+    const accomplishmentDetailsEl = document.getElementById('accomplishment-details');
+    const appContainer = document.querySelector('.relative.z-10.flex.flex-col.items-center.p-4.min-h-screen'); // Main app container for focus mode
+
 
     let todos = JSON.parse(localStorage.getItem('todos') || '[]');
+    let focusedTaskOriginalIndex = null; // To store the originalIndex of the focused task
 
     function saveAndRender() {
       localStorage.setItem('todos', JSON.stringify(todos));
@@ -169,10 +224,33 @@
       const diffMs = taskTime - now;
       const diffHours = diffMs / (1000 * 60 * 60);
       
-      if (diffMs < 0) return { status: 'overdue', text: 'Overdue', color: 'text-red-400' };
-      if (diffHours < 1) return { status: 'urgent', text: 'Due soon', color: 'text-orange-400' };
+      if (diffMs < 0) return { status: 'overdue', text: 'Overdue', color: 'text-red-400 font-bold' };
+      if (diffHours < 1) return { status: 'urgent', text: 'Due soon', color: 'text-orange-400 font-semibold' };
       if (diffHours < 24) return { status: 'today', text: 'Today', color: 'text-yellow-400' };
       return { status: 'upcoming', text: 'Upcoming', color: 'text-blue-400' };
+    }
+
+    function getPriorityStyles(priority) {
+      switch (priority) {
+        case 'high':
+          return {
+            badgeColor: 'bg-red-500/20 text-red-400 border-red-500/30',
+            borderColor: 'border-l-red-500',
+            text: 'High Priority'
+          };
+        case 'low':
+          return {
+            badgeColor: 'bg-sky-500/20 text-sky-400 border-sky-500/30',
+            borderColor: 'border-l-sky-500',
+            text: 'Low Priority'
+          };
+        default: // Medium
+          return {
+            badgeColor: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+            borderColor: 'border-l-yellow-500',
+            text: 'Medium Priority'
+          };
+      }
     }
 
     function formatRelativeTime(time) {
@@ -201,40 +279,164 @@
       emptyState.classList.add('hidden');
       stats.classList.remove('hidden');
 
-      todos.forEach((todo, i) => {
+      const priorityOrder = { high: 1, medium: 2, low: 3 };
+
+      const sortedTodos = [...todos].sort((a, b) => {
+        // 1. Accomplished tasks to the bottom
+        if (a.accomplished && !b.accomplished) return 1;
+        if (!a.accomplished && b.accomplished) return -1;
+
+        // If both are accomplished or both not, then sort by other criteria
+        if (a.accomplished === b.accomplished) {
+          // 2. For non-accomplished: Sort by due date (earliest first)
+          //    For accomplished: Could also sort by due date or accomplishment date (let's stick to due date for now)
+          const timeA = new Date(a.time).getTime();
+          const timeB = new Date(b.time).getTime();
+          if (timeA !== timeB) {
+            return timeA - timeB;
+          }
+
+          // 3. For non-accomplished: Sort by priority (High > Medium > Low)
+          //    (Priority sort might not be super relevant for already accomplished tasks, but consistent)
+          if (!a.accomplished) { // Only apply priority sort actively for non-accomplished
+            const priorityA = priorityOrder[a.priority];
+            const priorityB = priorityOrder[b.priority];
+            if (priorityA !== priorityB) {
+              return priorityA - priorityB;
+            }
+          }
+        }
+        return 0; // Keep original order if all else is equal
+      });
+
+      sortedTodos.forEach((todo, i) => {
+        // Find original index for functions like removeTodo, toggleAccomplished
+        const originalIndex = todos.findIndex(t => t === todo);
+
         const timeStatus = getTimeStatus(todo.time);
+        const priorityStyles = getPriorityStyles(todo.priority);
         const li = document.createElement('li');
-        li.className = 'bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-4 rounded-xl animate-bounce-in hover:bg-slate-800/70 transition-all duration-300';
-        li.style.animationDelay = `${i * 0.1}s`;
+        li.className = `bg-slate-800/50 backdrop-blur-sm border border-slate-700 p-4 rounded-xl animate-bounce-in hover:bg-slate-800/70 transition-all duration-300 border-l-4 ${priorityStyles.borderColor} ${ (focusedTaskOriginalIndex !== null && focusedTaskOriginalIndex !== originalIndex) ? 'opacity-30 blur-xs scale-95' : '' } ${ (focusedTaskOriginalIndex !== null && focusedTaskOriginalIndex === originalIndex) ? 'ring-2 ring-purple-500 scale-105 shadow-2xl' : '' }`;
+        li.style.animationDelay = `${i * 0.1}s`; // Animation delay based on sorted order
         
+        let rewardHTML = '';
+        if (todo.reward) {
+          rewardHTML = `
+            <div class="mt-2">
+              <span class="text-xs font-medium bg-green-500/20 text-green-400 border border-green-500/30 px-2 py-1 rounded-full inline-flex items-center">
+                <svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20"><path d="M12 2a2 2 0 00-2 2v12a2 2 0 002 2h.08a2 2 0 001.92-1.42A6.005 6.005 0 0112 14c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3a6.005 6.005 0 01-2-3.58V4a2 2 0 00-2-2zm0 14a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"></path></svg> <!-- Gift Icon -->
+                Reward: ${todo.reward}
+              </span>
+            </div>`;
+        }
+
+        let focusButtonHTML = '';
+        if (!todo.accomplished) {
+          focusButtonHTML = `
+            <button
+              onclick="toggleFocusMode(${originalIndex})"
+              class="p-2 rounded-lg transition-all duration-200 ${focusedTaskOriginalIndex === originalIndex ? 'bg-purple-500/30 text-purple-300 hover:bg-purple-500/40' : 'text-slate-400 hover:text-purple-400 hover:bg-purple-400/10'}"
+              title="${focusedTaskOriginalIndex === originalIndex ? 'Exit Focus Mode' : 'Focus on this task'}"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                ${focusedTaskOriginalIndex === originalIndex
+                  ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>' // Lightning bolt for "focused"
+                  : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path>' // Focus/Zoom icon
+                }
+              </svg>
+            </button>`;
+        }
+
+
         li.innerHTML = `
           <div class="flex justify-between items-start">
-            <div class="flex-1">
-              <p class="font-medium text-white mb-1">${todo.text}</p>
-              <div class="flex items-center space-x-2 text-sm">
+            <div class="flex-1 ${focusedTaskOriginalIndex !== null && focusedTaskOriginalIndex === originalIndex ? 'min-w-[200px]' : ''}">
+              <p class="font-medium text-white mb-1 ${focusedTaskOriginalIndex !== null && focusedTaskOriginalIndex === originalIndex ? 'text-lg' : ''}">${todo.text}</p>
+              <div class="flex items-center space-x-2 text-sm mb-2 flex-wrap ${focusedTaskOriginalIndex !== null && focusedTaskOriginalIndex === originalIndex ? 'text-base' : ''}">
                 <span class="text-slate-400">${new Date(todo.time).toLocaleString()}</span>
                 <span class="w-1 h-1 bg-slate-600 rounded-full"></span>
                 <span class="${timeStatus.color} font-medium">${formatRelativeTime(todo.time)}</span>
+                <span class="w-1 h-1 bg-slate-600 rounded-full"></span>
+                <span class="px-2 py-0.5 text-xs font-medium rounded-full ${priorityStyles.badgeColor}">${priorityStyles.text}</span>
               </div>
+              ${rewardHTML}
             </div>
-            <button 
-              onclick="removeTodo(${i})" 
-              class="ml-4 p-2 text-slate-400 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all duration-200"
-              title="Remove task"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-              </svg>
-            </button>
+            <div class="flex flex-col items-center ml-2 space-y-1">
+              ${focusButtonHTML}
+              <button
+                onclick="toggleAccomplished(${originalIndex})"
+                class="p-2 rounded-lg transition-all duration-200 ${ todo.accomplished ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30' : 'text-slate-400 hover:text-green-400 hover:bg-green-400/10'}"
+                title="${todo.accomplished ? 'Mark as not done' : 'Mark as done'}"
+                ${ (focusedTaskOriginalIndex !== null && focusedTaskOriginalIndex !== originalIndex) ? 'disabled' : '' }
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  ${todo.accomplished
+                    ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>' // Check circle
+                    : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path>' // Clipboard check
+                  }
+                </svg>
+              </button>
+              <button
+                onclick="removeTodo(${originalIndex})"
+                class="p-2 text-slate-500 hover:text-red-400 hover:bg-red-400/10 rounded-lg transition-all duration-200"
+                title="Remove task permanently"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+              </button>
+            </div>
           </div>
         `;
+
+        if (todo.accomplished) {
+          li.classList.add('opacity-60');
+          const textElement = li.querySelector('p.font-medium');
+          if (textElement) {
+            textElement.classList.add('line-through', 'text-slate-400');
+          }
+        }
         todoList.appendChild(li);
       });
 
       // Update stats
-      const upcomingTasks = todos.filter(todo => new Date(todo.time) > new Date()).length;
-      taskCount.textContent = `${todos.length} task${todos.length !== 1 ? 's' : ''}`;
+      const upcomingTasks = todos.filter(todo => !todo.accomplished && new Date(todo.time) > new Date()).length;
+      taskCount.textContent = `${todos.filter(t => !t.accomplished).length} active task${todos.filter(t => !t.accomplished).length !== 1 ? 's' : ''}`;
       upcomingCount.textContent = `${upcomingTasks} upcoming`;
+      calculateAccomplishmentRate();
+    }
+
+    function calculateAccomplishmentRate() {
+      const now = new Date();
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+      const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999).getTime();
+
+      let tasksDueByToday = 0;
+      let tasksAccomplishedToday = 0;
+
+      todos.forEach(todo => {
+        const dueDate = new Date(todo.time).getTime();
+
+        // Count tasks due by the end of today (or past due)
+        if (dueDate <= todayEnd) {
+          tasksDueByToday++;
+          if (todo.accomplished && todo.accomplishedDate) {
+            const accomplishedDate = new Date(todo.accomplishedDate).getTime();
+            if (accomplishedDate >= todayStart && accomplishedDate <= todayEnd) {
+              tasksAccomplishedToday++;
+            }
+          }
+        }
+      });
+
+      if (tasksDueByToday === 0) {
+        accomplishmentRateEl.textContent = 'N/A';
+        accomplishmentDetailsEl.textContent = '(No tasks due today or past)';
+      } else {
+        const rate = Math.round((tasksAccomplishedToday / tasksDueByToday) * 100);
+        accomplishmentRateEl.textContent = `${rate}%`;
+        accomplishmentDetailsEl.textContent = `(${tasksAccomplishedToday} of ${tasksDueByToday} tasks due today/past)`;
+      }
     }
 
     function removeTodo(index) {
@@ -248,12 +450,49 @@
       }, 300);
     }
 
-    function notify(title, body) {
+    function toggleAccomplished(index) {
+      todos[index].accomplished = !todos[index].accomplished;
+      if (todos[index].accomplished) {
+        todos[index].accomplishedDate = new Date().toISOString();
+      } else {
+        todos[index].accomplishedDate = null;
+      }
+      saveAndRender();
+    }
+
+    function toggleFocusMode(originalIndex) {
+      const header = document.querySelector('header');
+      const form = document.getElementById('todo-form');
+      // const statsDiv = document.getElementById('stats'); // Stats are part of appContainer, will be handled by its blur
+
+      if (focusedTaskOriginalIndex === originalIndex) { // Clicked on the already focused task or its focus button
+        focusedTaskOriginalIndex = null;
+        appContainer.classList.remove('focus-mode-active');
+        if(header) header.classList.remove('opacity-0', 'pointer-events-none', 'h-0', 'overflow-hidden');
+        if(form) form.classList.remove('opacity-0', 'pointer-events-none', 'h-0', 'overflow-hidden', 'my-0');
+      } else {
+        focusedTaskOriginalIndex = originalIndex;
+        appContainer.classList.add('focus-mode-active');
+        if(header) header.classList.add('opacity-0', 'pointer-events-none', 'h-0', 'overflow-hidden');
+        if(form) form.classList.add('opacity-0', 'pointer-events-none', 'h-0', 'overflow-hidden', 'my-0');
+
+        // Scroll to the focused task if it's not fully visible
+        setTimeout(() => { // Timeout to allow rendering changes
+          const focusedElement = todoList.children[sortedTodos.findIndex(t => todos.findIndex(ot => ot === t) === originalIndex)];
+          if (focusedElement) {
+            focusedElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 100);
+      }
+      render(); // Re-render to apply styles to task items
+    }
+
+    function notify(title, body, icon = 'android-chrome-192x192.png') {
       if (Notification.permission === 'granted') {
         const notification = new Notification(title, { 
           body,
-          icon: 'android-chrome-192x192.png',
-          badge: 'android-chrome-192x192.png'
+          icon: icon,
+          badge: 'android-chrome-192x192.png' // Badge can remain generic or also be dynamic
         });
         
         // Auto-close notification after 5 seconds
@@ -262,10 +501,24 @@
     }
 
     function scheduleAlarm(task) {
+      // Do not schedule alarms for accomplished tasks
+      if (task.accomplished) {
+        return;
+      }
       const delay = new Date(task.time).getTime() - Date.now();
       if (delay > 0) {
         setTimeout(() => {
-          notify('⏰ Task Reminder', task.text);
+          let notificationTitle = '⏰ Task Reminder';
+          let notificationBody = task.text;
+          if (task.priority === 'high') {
+            notificationTitle = '‼️ HIGH PRIORITY Task';
+          } else if (task.priority === 'low') {
+            notificationTitle = '📄 Low Priority Task';
+          }
+          // Potentially add reward to body if exists?
+          // if(task.reward) notificationBody += `\nReward: ${task.reward}`;
+
+          notify(notificationTitle, notificationBody);
         }, delay);
       }
     }
@@ -274,10 +527,12 @@
       e.preventDefault();
       const text = todoText.value.trim();
       const time = todoTime.value;
+      const priority = todoPriority.value;
+      const reward = todoReward.value.trim();
 
       if (!text || !time) return;
 
-      const task = { text, time };
+      const task = { text, time, priority, reward, accomplished: false, accomplishedDate: null };
       todos.push(task);
       scheduleAlarm(task);
       saveAndRender();
@@ -297,6 +552,8 @@
 
       todoText.value = '';
       todoTime.value = '';
+      todoPriority.value = 'medium'; // Reset to default
+      todoReward.value = '';
     };
 
     // Add glow effect to urgent tasks
