@@ -80,21 +80,44 @@
   </div>
 
   <div class="relative z-10 flex flex-col items-center p-4 min-h-screen">
-    <!-- Header -->
-    <header class="text-center mb-8 animate-fade-in">
-      <div class="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full mb-4 shadow-lg overflow-hidden">
-                <img src="images.png" alt="Todo Alarm Icon" class="w-full h-full object-cover rounded-full" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" />
-            <h5 class="text-4xl font-bold bg-gradient-to-r from-blue-400 to-red-400 bg-clip-text text-transparent mb-2">
+<!-- Header -->
+<header class="text-center mb-8 animate-fade-in">
+  <!-- Main Logo Container -->
+  <div class="flex flex-col items-center justify-center">
+    <!-- Logo Circle -->
+    <div class="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full mb-4 shadow-lg overflow-hidden">
+      <img 
+        src="./logo.png" 
+        alt="Todo Alarm Icon" 
+        class="w-full h-full object-cover rounded-full"
+        onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'white\'><text x=\'50%\' y=\'50%\' text-anchor=\'middle\' dy=\'.3em\' font-size=\'15\'>🔔</text></svg>'"
+      />
+    </div>
+
+    <!-- Title -->
+    <h1 class="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-2">
+      Todo Alarm
+    </h1>
+
+    <!-- By Line -->
+    <div class="flex items-center gap-2 mb-2">
+      <span class="text-lg bg-gradient-to-r from-blue-400 to-red-400 bg-clip-text text-transparent">
         By
-            </h5>
-        <img src="android-chrome-192x192.png" alt="Xerv" class="w-full h-full object-cover rounded-full" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';" />
-        <span class="text-2xl hidden">🔔</span>
+      </span>
+      <div class="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-purple-600">
+        <img 
+          src="./xerv-logo.png" 
+          alt="Xerv" 
+          class="w-full h-full object-cover"
+          onerror="this.parentElement.innerHTML = '🔔'"
+        />
       </div>
-      <h1 class="text-4xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent mb-2">
-        Todo Alarm
-      </h1>
-      <p class="text-slate-400 text-sm">Stay organized with smart reminders</p>
-    </header>
+    </div>
+
+    <!-- Subtitle -->
+    <p class="text-slate-400 text-sm">Stay organized with smart reminders</p>
+  </div>
+</header>
 
     <!-- Form -->
     <form id="todo-form" class="w-full max-w-md space-y-4 animate-slide-up">
